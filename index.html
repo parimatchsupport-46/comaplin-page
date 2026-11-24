@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Complaint Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Submit Complaint</h2>
+        <form id="complaintForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">User Name</label>
+                <input type="text" id="userName" required class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Mobile Number</label>
+                <input type="tel" id="mobileNumber" required class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Email ID</label>
+                <input type="email" id="emailId" required class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Enter Amount</label>
+                <input type="number" id="amount" required class="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Upload Image</label>
+                <input type="file" id="imageUpload" accept="image/*" required class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            </div>
+            <button type="submit" id="submitBtn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200 font-medium">Submit Complaint</button>
+        </form>
+        <p id="message" class="mt-4 text-center text-sm font-medium"></p>
+    </div>
+
+    <script>
+        const form = document.getElementById('complaintForm');
+        const messageEl = document.getElementById('message');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Image ko Base64 mein convert karne ka function (JSON ke liye zaroori)
+        const fileToBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+            messageEl.textContent = '';
+
+            const name = document.getElementById('userName').value;
+            const mobile = document.getElementById('mobileNumber').value;
+            const email = document.getElementById('emailId').value;
+            const amount = document.getElementById('amount').value;
+            const imageFile = document.getElementById('imageUpload').files[0];
+
+            try {
+                const base64Image = await fileToBase64(imageFile);
+
+                const payload = {
+                    name: name,
+                    mobile: mobile,
+                    email: email,
+                    amount: amount,
+                    image: base64Image,
+                    timestamp: new Date().toISOString()
+                };
+
+                const response = await fetch('http://45.195.159.105/api/v1/data/contacts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-project-id': 'prj_5d0f02ccd0',
+                        'x-api-key': 'pk_live_aae2849cd29878193150ae0f6191b2da'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    messageEl.textContent = 'Complaint submitted successfully!';
+                    messageEl.className = 'mt-4 text-center text-sm font-medium text-green-600';
+                    form.reset();
+                } else {
+                    throw new Error('Server response was not ok');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                messageEl.textContent = 'Error submitting complaint. Please check console or try again.';
+                messageEl.className = 'mt-4 text-center text-sm font-medium text-red-600';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Complaint';
+            }
+        });
+    </script>
+</body>
+</html>
