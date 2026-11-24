@@ -40,7 +40,12 @@
         const messageEl = document.getElementById('message');
         const submitBtn = document.getElementById('submitBtn');
 
-        // Image ko Base64 mein convert karne ka function (JSON ke liye zaroori)
+        // UPDATED CONFIG START
+        const API_URL = 'http://45.195.159.105/api/v1/data/contacts';
+        const PROJECT_ID = 'prj_f7a91ede5a';
+        const API_KEY = 'pk_live_cd3a92e8d0bc604ca3192bbb6e2dd280';
+        // UPDATED CONFIG END
+
         const fileToBase64 = file => new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -72,12 +77,12 @@
                     timestamp: new Date().toISOString()
                 };
 
-                const response = await fetch('http://45.195.159.105/api/v1/storage/upload', {
+                const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-project-id': 'prj_f7a91ede5a',
-                        'x-api-key': 'pk_live_cd3a92e8d0bc604ca3192bbb6e2dd280'
+                        'x-project-id': PROJECT_ID,
+                        'x-api-key': API_KEY
                     },
                     body: JSON.stringify(payload)
                 });
@@ -87,11 +92,12 @@
                     messageEl.className = 'mt-4 text-center text-sm font-medium text-green-600';
                     form.reset();
                 } else {
-                    throw new Error('Server response was not ok');
+                    const errorText = await response.text();
+                    throw new Error(`Server error: ${response.status} - ${errorText}`);
                 }
             } catch (error) {
                 console.error('Error:', error);
-                messageEl.textContent = 'Error submitting complaint. Please check console or try again.';
+                messageEl.textContent = 'Error submitting complaint. Check console for details.';
                 messageEl.className = 'mt-4 text-center text-sm font-medium text-red-600';
             } finally {
                 submitBtn.disabled = false;
