@@ -37,31 +37,35 @@
     </div>
 
     <script>
+        // UPDATED CONFIG START
         const API_URL = 'http://45.195.159.105/api/v1/data/contacts';
+        const PROJECT_ID = 'prj_f7a91ede5a';
+        const API_KEY = 'pk_live_cd3a92e8d0bc604ca3192bbb6e2dd280';
+        
         const HEADERS = {
             'Content-Type': 'application/json',
-            'x-project-id': 'prj_f7a91ede5a',
-            'x-api-key': 'pk_live_cd3a92e8d0bc604ca3192bbb6e2dd280'
+            'x-project-id': PROJECT_ID,
+            'x-api-key': API_KEY
         };
+        // UPDATED CONFIG END
 
         async function fetchComplaints() {
             const tbody = document.getElementById('complaintsTableBody');
             tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Loading data...</td></tr>';
 
             try {
-                // Note: Agar aapka GET endpoint alag hai, toh URL ko yahan update kar dein
                 const response = await fetch(API_URL, {
                     method: 'GET',
                     headers: HEADERS
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to fetch data');
+                    throw new Error(`Failed to fetch data: ${response.status}`);
                 }
 
                 const result = await response.json();
                 
-                // Response structure ko handle karna (Array ya Object ke andar data)
+                // Response structure handle karna
                 const complaints = Array.isArray(result) ? result : (result.data || result.contacts || []);
 
                 tbody.innerHTML = '';
@@ -78,9 +82,9 @@
                     const email = comp.email || 'N/A';
                     const amount = comp.amount ? `₹${comp.amount}` : 'N/A';
                     
-                    // Image display logic
-                    let imageHtml = '<span class="text-gray-400">No Image</span>';
+                    let imageHtml = '<span class="text-gray-400 text-xs">No Image</span>';
                     if (comp.image) {
+                        // Agar server se direct URL aati hai ya Base64 string
                         const imgSrc = comp.image.startsWith('data:image') ? comp.image : `data:image/jpeg;base64,${comp.image}`;
                         imageHtml = `<img src="${imgSrc}" alt="Complaint Image" class="h-16 w-16 object-cover rounded-md border border-gray-200 cursor-pointer hover:opacity-80 transition" onclick="window.open(this.src, '_blank')" title="Click to enlarge">`;
                     }
@@ -100,11 +104,10 @@
 
             } catch (error) {
                 console.error('Error fetching complaints:', error);
-                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">Error loading data. Check console for CORS or network details.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">Error loading data. Check console/CORS.</td></tr>';
             }
         }
 
-        // Page load hone par data fetch karein
         document.addEventListener('DOMContentLoaded', fetchComplaints);
     </script>
 </body>
