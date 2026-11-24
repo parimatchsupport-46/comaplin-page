@@ -40,9 +40,18 @@
         const messageEl = document.getElementById('message');
         const submitBtn = document.getElementById('submitBtn');
 
-        const BASE_URL = 'https://server-vakki-8740.duckdns.org';
-        const PROJECT_ID = 'prj_f7a91ede5a';
-        const API_KEY = 'pk_live_cd3a92e8d0bc604ca3192bbb6e2dd280';
+        // UPDATED CONFIG START
+        const API_URL = 'https://server-vakki-8740.duckdns.org/api/v1/data/contacts';
+        const PROJECT_ID = 'prj_8781205776';
+        const API_KEY = 'pk_live_ae94510b516a28ec9be647f9cbac2635';
+        // UPDATED CONFIG END
+
+        const fileToBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -50,29 +59,25 @@
             submitBtn.textContent = 'Submitting...';
             messageEl.textContent = '';
 
-            try {
-                const imageFile = document.getElementById('imageUpload').files[0];
-                const formData = new FormData();
-                formData.append('file', imageFile);
+            const name = document.getElementById('userName').value;
+            const mobile = document.getElementById('mobileNumber').value;
+            const email = document.getElementById('emailId').value;
+            const amount = document.getElementById('amount').value;
+            const imageFile = document.getElementById('imageUpload').files[0];
 
-                const uploadRes = await fetch(`${BASE_URL}/api/v1/storage/upload`, {
-                    method: 'POST',
-                    headers: { 'x-project-id': PROJECT_ID, 'x-api-key': API_KEY },
-                    body: formData
-                });
-                const uploadData = await uploadRes.json();
-                if (!uploadRes.ok) throw new Error(uploadData.error || 'Image upload failed');
+            try {
+                const base64Image = await fileToBase64(imageFile);
 
                 const payload = {
-                    name: document.getElementById('userName').value,
-                    mobile: document.getElementById('mobileNumber').value,
-                    email: document.getElementById('emailId').value,
-                    amount: document.getElementById('amount').value,
-                    file_id: uploadData.file.id,
+                    name: name,
+                    mobile: mobile,
+                    email: email,
+                    amount: amount,
+                    image: base64Image,
                     timestamp: new Date().toISOString()
                 };
 
-                const response = await fetch(`${BASE_URL}/api/v1/data/contacts`, {
+                const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -82,14 +87,17 @@
                     body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) throw new Error(await response.text());
-
-                messageEl.textContent = 'Complaint submitted successfully!';
-                messageEl.className = 'mt-4 text-center text-sm font-medium text-green-600';
-                form.reset();
+                if (response.ok) {
+                    messageEl.textContent = 'Complaint submitted successfully!';
+                    messageEl.className = 'mt-4 text-center text-sm font-medium text-green-600';
+                    form.reset();
+                } else {
+                    const errorText = await response.text();
+                    throw new Error(`Server error: ${response.status} - ${errorText}`);
+                }
             } catch (error) {
                 console.error('Error:', error);
-                messageEl.textContent = 'Error: ' + error.message;
+                messageEl.textContent = 'Error submitting complaint. Check console for details.';
                 messageEl.className = 'mt-4 text-center text-sm font-medium text-red-600';
             } finally {
                 submitBtn.disabled = false;
@@ -97,5 +105,5 @@
             }
         });
     </script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5fb0cceabd5cd07',t:'MTc5NTU1MDk1Mg=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a5fb0cceabd5cd07',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
