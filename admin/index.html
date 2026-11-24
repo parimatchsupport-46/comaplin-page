@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Complaint Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold text-gray-800">Admin Complaint Dashboard</h2>
+            <button onclick="fetchComplaints()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">Refresh Data</button>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                        </tr>
+                    </thead>
+                    <tbody id="complaintsTableBody" class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td colspan="6" class="px-6 py-4 text-center text-gray-500">Loading data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://45.195.159.105/api/v1/data/contacts';
+        const HEADERS = {
+            'Content-Type': 'application/json',
+            'x-project-id': 'prj_5d0f02ccd0',
+            'x-api-key': 'pk_live_aae2849cd29878193150ae0f6191b2da'
+        };
+
+        async function fetchComplaints() {
+            const tbody = document.getElementById('complaintsTableBody');
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Loading data...</td></tr>';
+
+            try {
+                // Note: Agar aapka GET endpoint alag hai, toh URL ko yahan update kar dein
+                const response = await fetch(API_URL, {
+                    method: 'GET',
+                    headers: HEADERS
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data');
+                }
+
+                const result = await response.json();
+                
+                // Response structure ko handle karna (Array ya Object ke andar data)
+                const complaints = Array.isArray(result) ? result : (result.data || result.contacts || []);
+
+                tbody.innerHTML = '';
+
+                if (complaints.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No complaints found.</td></tr>';
+                    return;
+                }
+
+                complaints.forEach(comp => {
+                    const date = comp.timestamp ? new Date(comp.timestamp).toLocaleString() : 'N/A';
+                    const name = comp.name || 'N/A';
+                    const mobile = comp.mobile || 'N/A';
+                    const email = comp.email || 'N/A';
+                    const amount = comp.amount ? `₹${comp.amount}` : 'N/A';
+                    
+                    // Image display logic
+                    let imageHtml = '<span class="text-gray-400">No Image</span>';
+                    if (comp.image) {
+                        const imgSrc = comp.image.startsWith('data:image') ? comp.image : `data:image/jpeg;base64,${comp.image}`;
+                        imageHtml = `<img src="${imgSrc}" alt="Complaint Image" class="h-16 w-16 object-cover rounded-md border border-gray-200 cursor-pointer hover:opacity-80 transition" onclick="window.open(this.src, '_blank')" title="Click to enlarge">`;
+                    }
+
+                    const row = `
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${date}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${name}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${mobile}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${email}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">${amount}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${imageHtml}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+
+            } catch (error) {
+                console.error('Error fetching complaints:', error);
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">Error loading data. Check console for CORS or network details.</td></tr>';
+            }
+        }
+
+        // Page load hone par data fetch karein
+        document.addEventListener('DOMContentLoaded', fetchComplaints);
+    </script>
+</body>
+</html>
