@@ -12,7 +12,7 @@
             <h2 class="text-3xl font-bold text-gray-800">Admin Complaint Dashboard</h2>
             <button onclick="fetchComplaints()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">Refresh Data</button>
         </div>
-        
+
         <div class="bg-white rounded-lg shadow-md overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -37,74 +37,60 @@
     </div>
 
     <script>
-        // UPDATED CONFIG START
-        const API_URL = 'https://server-vakki-8740.duckdns.org/api/v1/data/contacts';
+        const BASE_URL = 'https://server-vakki-8740.duckdns.org';
         const PROJECT_ID = 'prj_f7a91ede5a';
         const API_KEY = 'pk_live_cd3a92e8d0bc604ca3192bbb6e2dd280';
-        
-        const HEADERS = {
-            'Content-Type': 'application/json',
-            'x-project-id': PROJECT_ID,
-            'x-api-key': API_KEY
-        };
-        // UPDATED CONFIG END
+        const HEADERS = { 'Content-Type': 'application/json', 'x-project-id': PROJECT_ID, 'x-api-key': API_KEY };
+
+        async function viewImage(fileId) {
+            const res = await fetch(`${BASE_URL}/api/v1/storage/${fileId}`, {
+                headers: { 'x-project-id': PROJECT_ID, 'x-api-key': API_KEY }
+            });
+            const blob = await res.blob();
+            window.open(URL.createObjectURL(blob), '_blank');
+        }
 
         async function fetchComplaints() {
             const tbody = document.getElementById('complaintsTableBody');
             tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Loading data...</td></tr>';
 
             try {
-                const response = await fetch(API_URL, {
-                    method: 'GET',
-                    headers: HEADERS
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch data: ${response.status}`);
-                }
+                const response = await fetch(`${BASE_URL}/api/v1/data/contacts`, { method: 'GET', headers: HEADERS });
+                if (!response.ok) throw new Error(`Failed: ${response.status}`);
 
                 const result = await response.json();
-                
-                // Response structure handle karna
-                const complaints = Array.isArray(result) ? result : (result.data || result.contacts || []);
-
-                tbody.innerHTML = '';
+                const raw = result.records || result.data || result.contacts || [];
+                const complaints = raw.map(r => r.data ? { ...r.data, timestamp: r.data.timestamp || r.created_at } : r);
 
                 if (complaints.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No complaints found.</td></tr>';
                     return;
                 }
 
-                complaints.forEach(comp => {
+                tbody.innerHTML = complaints.map(comp => {
                     const date = comp.timestamp ? new Date(comp.timestamp).toLocaleString() : 'N/A';
-                    const name = comp.name || 'N/A';
-                    const mobile = comp.mobile || 'N/A';
-                    const email = comp.email || 'N/A';
-                    const amount = comp.amount ? `₹${comp.amount}` : 'N/A';
-                    
                     let imageHtml = '<span class="text-gray-400 text-xs">No Image</span>';
-                    if (comp.image) {
-                        // Agar server se direct URL aati hai ya Base64 string
+                    if (comp.file_id) {
+                        imageHtml = `<button onclick="viewImage('${comp.file_id}')" class="bg-blue-50 text-blue-700 px-3 py-1 rounded text-xs font-semibold hover:bg-blue-100">View Image</button>`;
+                    } else if (comp.image) {
                         const imgSrc = comp.image.startsWith('data:image') ? comp.image : `data:image/jpeg;base64,${comp.image}`;
-                        imageHtml = `<img src="${imgSrc}" alt="Complaint Image" class="h-16 w-16 object-cover rounded-md border border-gray-200 cursor-pointer hover:opacity-80 transition" onclick="window.open(this.src, '_blank')" title="Click to enlarge">`;
+                        imageHtml = `<img src="${imgSrc}" class="h-16 w-16 object-cover rounded-md border cursor-pointer" onclick="window.open(this.src, '_blank')">`;
                     }
 
-                    const row = `
+                    return `
                         <tr class="hover:bg-gray-50 transition">
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${date}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${name}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${mobile}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${email}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">${amount}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${comp.name || 'N/A'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${comp.mobile || 'N/A'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${comp.email || 'N/A'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">${comp.amount ? '₹' + comp.amount : 'N/A'}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${imageHtml}</td>
                         </tr>
                     `;
-                    tbody.innerHTML += row;
-                });
-
+                }).join('');
             } catch (error) {
-                console.error('Error fetching complaints:', error);
-                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">Error loading data. Check console/CORS.</td></tr>';
+                console.error('Error:', error);
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">Error loading data.</td></tr>';
             }
         }
 
